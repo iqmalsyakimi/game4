@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Falling Objects</title>
+    <style>
+        :root {
+            --basket-color: #FF6B6B;
+            --background-color: #1A1A2E;
+            --text-color: #E6E6E6;
+            --accent-color: #4ECDC4;
+            --danger-color: #FF6B6B;
+            --success-color: #06D6A0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, #16213E 0%, #1A1A2E 100%);
+        }
+        
+        #basket {
+            position: absolute;
+            width: 120px;
+            height: 40px;
+            background: var(--basket-color);
+            border-radius: 10px 10px 0 0;
+            bottom: 30px;
+            left: calc(50% - 60px);
+            box-shadow: 0 -5px 15px rgba(255, 107, 107, 0.4);
+            transition: transform 0.1s ease;
+            z-index: 10;
+        }
+        
+        #basket::after {
+            content: '';
+            position: absolute;
+            width: 140px;
+            height: 20px;
+            background: rgba(255, 107, 107, 0.3);
+            bottom: -15px;
+            left: -10px;
+            border-radius: 50%;
+            filter: blur(5px);
+        }
+        
+        .falling-object {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s ease;
+            z-index: 5;
+        }
+        
+        .falling-object:hover {
+            transform: scale(1.1);
+        }
+        
+        .falling-object.caught {
+            animation: caught 0.5s ease-out forwards;
+        }
+        
+        @keyframes caught {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.5) translateY(-50px); opacity: 0; }
+        }
+        
+        #score-display, #lives-display {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        #score-display {
+            top: 20px;
+            left: 20px;
+            color: var(--accent-color);
+        }
+        
+        #lives-display {
+            top: 20px;
+            right: 20px;
+            color: var(--danger-color);
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            z-index: 20;
+        }
+        
+        #game-over h1 {
+            font-size: 72px;
+            color: var(--danger-color);
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+        }
+        
+        #final-score {
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: var(--accent-color);
+        }
+        
+        #restart-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(6, 214, 160, 0.4);
+        }
+        
+        #restart-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(6, 214, 160, 0.6);
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            backdrop-filter: blur(5px);
+        }
+        
+        #start-screen h1 {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+        
+        #start-screen p {
+            font-size: 20px;
+            margin-bottom: 40px;
+            max-width: 600px;
+            text-align: center;
+            line-height: 1.6;
+        }
+        
+        #start-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(6, 214, 160, 0.4);
+        }
+        
+        #start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(6, 214, 160, 0.6);
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        #difficulty-meter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        #difficulty-progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+            transition: width 0.3s ease;
+        }
+        
+        #combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(78, 205, 196, 0.7);
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 15;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>Catch the Falling Objects</h1>
+            <p>Use your mouse or arrow keys to move the basket and catch the falling objects. Score points and avoid missing too many!</p>
+            <button id="start-button">Start Game</button>
+        </div>
+        
+        <div id="basket"></div>
+        <div id="score-display">Score: 0</div>
+        <div id="lives-display">Lives: 3</div>
+        <div id="difficulty-meter"><div id="difficulty-progress"></div></div>
+        <div id="combo-display"></div>
+        
+        <div id="game-over">
+            <h1>Game Over!</h1>
+            <div id="final-score">Score: 0</div>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let lives = 3;
+        let gameSpeed = 1;
+        let isGameRunning = false;
+        let spawnInterval;
+        let gameLoop;
+        let combo = 0;
+        let lastCaughtTime = 0;
+        let keysPressed = {};
+        
+        // DOM elements
+        const basket = document.getElementById('basket');
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const gameOverDisplay = document.getElementById('game-over');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const difficultyProgress = document.getElementById('difficulty-progress');
+        const comboDisplay = document.getElementById('combo-display');
+        
+        // Event listeners
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            keysPressed[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key] = false;
+        });
+        
+        // Object types with different properties
+        const objectTypes = [
+            { color: '#4ECDC4', points: 10, size: 30 }, // Regular
+            { color: '#FFE66D', points: 20, size: 25 }, // Bonus
+            { color: '#FF6B6B', points: -5, size: 35 }, // Penalty
+            { color: '#06D6A0', points: 15, size: 28 }, // Speed
+            { color: '#118AB2', points: 30, size: 22 }  // Rare
+        ];
+        
+        function startGame() {
+            // Reset game state
+            score = 0;
+            lives = 3;
+            gameSpeed = 1;
+            isGameRunning = true;
+            combo = 0;
+            
+            // Clear any existing objects
+            document.querySelectorAll('.falling-object').forEach(obj => obj.remove());
+            
+            // Update displays
+            scoreDisplay.textContent = `Score: ${score}`;
+            livesDisplay.textContent = `Lives: ${lives}`;
+            difficultyProgress.style.width = '0%';
+            gameOverDisplay.style.display = 'none';
+            startScreen.style.display = 'none';
+            
+            // Start game loops
+            spawnInterval = setInterval(spawnObject, 800);
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+        
+        function spawnObject() {
+            if (!isGameRunning) return;
+            
+            const object = document.createElement('div');
+            object.className = 'falling-object';
+            
+            // Random type
+            const typeIndex = Math.floor(Math.random() * objectTypes.length);
+            const type = objectTypes[typeIndex];
+            
+            // Random position
+            const containerWidth = gameContainer.offsetWidth;
+            const xPos = Math.random() * (containerWidth - type.size);
+            
+            // Set object properties
+            object.style.width = `${type.size}px`;
+            object.style.height = `${type.size}px`;
+            object.style.left = `${xPos}px`;
+            object.style.top = `-${type.size}px`;
+            object.style.backgroundColor = type.color;
+            
+            // Store object data
+            object.dataset.points = type.points;
+            object.dataset.type = typeIndex;
+            
+            // Add to game container
+            gameContainer.appendChild(object);
+        }
+        
+        function updateGame() {
+            if (!isGameRunning) return;
+            
+            // Handle keyboard controls
+            if (keysPressed['ArrowLeft'] || keysPressed['a']) {
+                moveBasket(-10);
+            }
+            if (keysPressed['ArrowRight'] || keysPressed['d']) {
+                moveBasket(10);
+            }
+            
+            const objects = document.querySelectorAll('.falling-object:not(.caught)');
+            const basketRect = basket.getBoundingClientRect();
+            const containerRect = gameContainer.getBoundingClientRect();
+            
+            objects.forEach(object => {
+                const objectRect = object.getBoundingClientRect();
+                const points = parseInt(object.dataset.points);
+                const type = parseInt(object.dataset.type);
+                
+                // Move object down
+                const currentTop = parseFloat(object.style.top);
+                const speedMultiplier = type === 3 ? 1.5 : 1; // Speed type falls faster
+                const newTop = currentTop + 3 * gameSpeed * speedMultiplier;
+                object.style.top = `${newTop}px`;
+                
+                // Check if caught by basket
+                if (
+                    newTop + objectRect.height >= basketRect.top &&
+                    objectRect.left + objectRect.width >= basketRect.left &&
+                    objectRect.left <= basketRect.left + basketRect.width
+                ) {
+                    // Caught!
+                    object.classList.add('caught');
+                    handleCaughtObject(object, points, type);
+                    
+                    // Create particles
+                    createParticles(objectRect, objectTypes[type].color);
+                }
+                
+                // Check if missed (fell to bottom)
+                if (newTop > containerRect.height && !object.classList.contains('caught')) {
+                    object.remove();
+                    handleMissedObject();
+                }
+            });
+            
+            // Update combo display
+            const now = Date.now();
+            if (now - lastCaughtTime > 1000 && combo > 0) {
+                combo = 0;
+                comboDisplay.style.opacity = '0';
+            }
+            
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+        
+        function moveBasket(amount) {
+            const currentLeft = parseFloat(basket.style.left);
+            const maxLeft = gameContainer.offsetWidth - basket.offsetWidth;
+            const newLeft = Math.max(0, Math.min(currentLeft + amount, maxLeft));
+            
+            basket.style.left = `${newLeft}px`;
+            
+            // Add tilt effect
+            basket.style.transform = `rotate(${amount * 0.3}deg)`;
+            setTimeout(() => {
+                basket.style.transform = 'rotate(0deg)';
+            }, 100);
+        }
+        
+        function handleCaughtObject(object, points, type) {
+            // Update score
+            score += points;
+            
+            // Combo system
+            const now = Date.now();
+            if (now - lastCaughtTime < 1000) {
+                combo++;
+                if (combo > 1) {
+                    showCombo(combo);
+                    // Bonus points for combos
+                    score += combo * 2;
+                }
+            } else {
+                combo = 1;
+            }
+            lastCaughtTime = now;
+            
+            // Update displays
+            scoreDisplay.textContent = `Score: ${score}`;
+            
+            // Special effects for different types
+            if (type === 1) { // Bonus type
+                createParticles(object.getBoundingClientRect(), '#FFE66D', 20);
+            } else if (type === 2) { // Penalty type
+                lives--;
+                livesDisplay.textContent = `Lives: ${lives}`;
+                if (lives <= 0) {
+                    endGame();
+                }
+            }
+            
+            // Remove object after animation
+            setTimeout(() => {
+                object.remove();
+            }, 500);
+            
+            // Increase difficulty based on score
+            gameSpeed = 1 + Math.floor(score / 200) * 0.2;
+            difficultyProgress.style.width = `${Math.min(100, (score % 200) / 2)}%`;
+        }
+        
+        function handleMissedObject() {
+            lives--;
+            livesDisplay.textContent = `Lives: ${lives}`;
+            
+            // Shake effect when losing a life
+            gameContainer.style.transform = 'translateX(-10px)';
+            setTimeout(() => {
+                gameContainer.style.transform = 'translateX(10px)';
+                setTimeout(() => {
+                    gameContainer.style.transform = 'translateX(0)';
+                }, 50);
+            }, 50);
+            
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+        
+        function showCombo(count) {
+            comboDisplay.textContent = `${count}x Combo!`;
+            comboDisplay.style.opacity = '1';
+            comboDisplay.style.transform = 'translate(-50%, -60px) scale(1.2)';
+            
+            setTimeout(() => {
+                comboDisplay.style.transform = 'translate(-50%, -80px) scale(1)';
+                comboDisplay.style.opacity = '0.8';
+            }, 100);
+        }
+        
+        function createParticles(rect, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 8 + 4;
+                const x = rect.left + rect.width / 2;
+                const y = rect.top + rect.height / 2;
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = color;
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                
+                // Random direction and speed
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                const lifetime = Math.random() * 1000 + 500;
+                
+                gameContainer.appendChild(particle);
+                
+                // Animate particle
+                const startTime = Date.now();
+                function animateParticle() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / lifetime;
+                    
+                    if (progress >= 1) {
+                        particle.remove();
+                        return;
+                    }
+                    
+                    const distance = speed * elapsed / 20;
+                    const currentX = x + Math.cos(angle) * distance;
+                    const currentY = y + Math.sin(angle) * distance;
+                    
+                    particle.style.left = `${currentX}px`;
+                    particle.style.top = `${currentY}px`;
+                    particle.style.opacity = 1 - progress;
+                    
+                    requestAnimationFrame(animateParticle);
+                }
+                
+                requestAnimationFrame(animateParticle);
+            }
+        }
+        
+        function endGame() {
+            isGameRunning = false;
+            clearInterval(spawnInterval);
+            cancelAnimationFrame(gameLoop);
+            
+            finalScoreDisplay.textContent = `Score: ${score}`;
+            gameOverDisplay.style.display = 'block';
+        }
+        
+        // Mouse movement for basket
+        gameContainer.addEventListener('mousemove', (e) => {
+            if (!isGameRunning) return;
+            
+            const containerRect = gameContainer.getBoundingClientRect();
+            const xPos = e.clientX - containerRect.left - basket.offsetWidth / 2;
+            
+            // Keep basket within game container
+            const maxX = containerRect.width - basket.offsetWidth;
+            const clampedX = Math.max(0, Math.min(xPos, maxX));
+            
+            basket.style.left = `${clampedX}px`;
+        });
+    </script>
+</body>
+</html>
